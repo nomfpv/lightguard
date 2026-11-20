@@ -1,0 +1,2 @@
+/* the ui font, embedded and loaded privately with AddFontMemResourceEx. build.bat runs rc from the repo root */
+1 RCDATA "assets\\ProggyClean.ttf"

@@ -1,0 +1,10 @@
+build/
+*.obj
+*.res
+*.exe
+*.pdb
+*.ilk
+*.o
+/lightguard
+*.tmp
+*.log
