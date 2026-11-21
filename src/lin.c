@@ -1110,7 +1110,7 @@ static void draw(void)
         else snprintf(info, sizeof info, "Saved as " CONFDIR "/%s.conf", g_cur);
         put_w(info, cw, 0);
         at(r + 8, cx);
-        put_w("Other settings in the file, like DNS or MTU, are kept as they are.", cw, 0);
+        put_w("Other settings in the file, like MTU, are kept as they are.", cw, 0);
         fputs(C_RST, stdout);
         at(r + 10, cx);
         if (g_armdel) fputs(C_ERR, stdout);

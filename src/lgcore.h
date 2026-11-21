@@ -26,6 +26,7 @@ int lg_name_ok(const char *name, size_t maxlen);
 typedef struct {
     char priv[64];
     char address[256];
+    char dns[256];
     char peerpub[64];
     char psk[64];
     char endpoint[256];

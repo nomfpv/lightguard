@@ -316,6 +316,7 @@ void lg_conf_parse(lg_conf *c, const char *t, size_t n)
             if (sect == 1) {
                 if (ieqn(k, kl, "PrivateKey")) { setf(c->priv, sizeof c->priv, 0, v, vl); continue; }
                 if (ieqn(k, kl, "Address")) { setf(c->address, sizeof c->address, 1, v, vl); continue; }
+                if (ieqn(k, kl, "DNS")) { setf(c->dns, sizeof c->dns, 1, v, vl); continue; }
             } else {
                 if (ieqn(k, kl, "PublicKey")) { setf(c->peerpub, sizeof c->peerpub, 0, v, vl); continue; }
                 if (ieqn(k, kl, "PresharedKey")) { setf(c->psk, sizeof c->psk, 0, v, vl); continue; }
@@ -361,12 +362,13 @@ int lg_conf_format(const lg_conf *c, char *out, size_t cap)
 {
     W w;
     if (!cap) return -1;
-    if (!clean(c->priv) || !clean(c->address) || !clean(c->peerpub) || !clean(c->psk) ||
+    if (!clean(c->priv) || !clean(c->address) || !clean(c->dns) || !clean(c->peerpub) || !clean(c->psk) ||
         !clean(c->endpoint) || !clean(c->allowed) || !clean(c->keepalive)) return -1;
     w.p = out; w.cap = cap; w.n = 0; w.bad = 0;
     wput(&w, "[Interface]\n");
     wkv(&w, "PrivateKey", c->priv);
     wkv(&w, "Address", c->address);
+    wkv(&w, "DNS", c->dns);
     wput(&w, c->extra_if);
     wput(&w, "\n[Peer]\n");
     wkv(&w, "PublicKey", c->peerpub);
@@ -464,7 +466,7 @@ int lg_selftest(void (*out)(const char *line))
     fails += check(out, "base64 rejects junk", !lg_b64dec("not a key", got));
 
     lg_conf_parse(&c, sample, sizeof sample - 1);
-    fails += check(out, "conf parse", c.npeers == 1 && slen(c.allowed) == 30 && slen(c.extra_if) == 14);
+    fails += check(out, "conf parse", c.npeers == 1 && slen(c.allowed) == 30 && slen(c.dns) == 7 && !c.extra_if[0]);
     fails += check(out, "conf format", lg_conf_format(&c, buf, sizeof buf) > 0);
     return fails;
 }

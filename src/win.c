@@ -56,7 +56,7 @@ static int scale(void) { int k = ((int)g_dpi + 48) / 96; return k < 1 ? 1 : k; }
 static int S(int v) { return v * scale(); }
 
 /* fields */
-enum { F_NAME, F_ADDR, F_ENDP, F_PEER, F_ALLOWED, F_PRIV, F_PSK, F_PUB, NF };
+enum { F_NAME, F_ADDR, F_ENDP, F_PEER, F_ALLOWED, F_PRIV, F_PSK, F_DNS, F_PUB, NF };
 typedef struct { const wchar_t *label, *cue, *hint; int tab, max, mono; } FieldDef;
 static const FieldDef FD[NF] = {
     { L"Name", L"home", NULL, 0, NAME_MAX_LEN, 0 },
@@ -66,6 +66,7 @@ static const FieldDef FD[NF] = {
     { L"Networks to reach", L"192.168.50.0/24, comma-separated", NULL, 0, 511, 0 },
     { L"Your private key", NULL, L"never share this", 1, 63, 1 },
     { L"Preshared key", L"optional", L"both sides need the same one", 1, 63, 1 },
+    { L"DNS servers", L"empty = keep the normal DNS", L"optional", 1, 255, 0 },
     { NULL, NULL, NULL, 2, 63, 1 },
 };
 static HWND fe[NF];
@@ -494,6 +495,7 @@ static void fill_edits(void)
     settext_u(fe[F_ALLOWED], g_conf.allowed);
     settext_u(fe[F_PRIV], g_conf.priv);
     settext_u(fe[F_PSK], g_conf.psk);
+    settext_u(fe[F_DNS], g_conf.dns);
     bi[B_KEEP].checked = g_conf.keepalive[0] && lstrcmpA(g_conf.keepalive, "0") != 0;
     g_loading = 0;
     update_pub();
@@ -631,6 +633,9 @@ static int validate(int complete, int only)
 
     gettext_u(fe[F_PSK], s, sizeof s);
     if (s[0] && !lg_b64dec(s, k)) { key_err(s, e); BAD(F_PSK, e); }
+
+    gettext_u(fe[F_DNS], s, sizeof s);
+    if (s[0] && !ip_list_ok(s)) BAD(F_DNS, L"use addresses like 1.1.1.1, comma-separated");
 #undef BAD
     SecureZeroMemory(s, sizeof s);
     SecureZeroMemory(k, sizeof k);
@@ -673,6 +678,7 @@ static int form_save(int complete)
     gettext_u(fe[F_ALLOWED], g_conf.allowed, sizeof g_conf.allowed);
     gettext_u(fe[F_PRIV], g_conf.priv, sizeof g_conf.priv);
     gettext_u(fe[F_PSK], g_conf.psk, sizeof g_conf.psk);
+    gettext_u(fe[F_DNS], g_conf.dns, sizeof g_conf.dns);
     if (bi[B_KEEP].checked) {
         if (!g_conf.keepalive[0] || lstrcmpA(g_conf.keepalive, "0") == 0) lstrcpyA(g_conf.keepalive, "25");
     } else {
@@ -1504,7 +1510,8 @@ static void layout(void)
     /* advanced tab */
     place_field(F_PRIV, cx, fy, cw, B_SHOW, B_NEWKEY, S(64));
     place_field(F_PSK, cx, fy + S(PITCH), cw, B_GENPSK, -1, S(64));
-    SetRect(&r_advinfo, cx, fy + 2 * S(PITCH) + S(2), cx + cw, fy + 2 * S(PITCH) + S(2) + S(3 * 14));
+    place_field(F_DNS, cx, fy + 2 * S(PITCH), cw, -1, -1, 0);
+    SetRect(&r_advinfo, cx, fy + 3 * S(PITCH) + S(2), cx + cw, fy + 3 * S(PITCH) + S(2) + S(3 * 14));
     place(bh[B_DELETE], cx, r_advinfo.bottom + S(8), S(150), S(BTN_H));
 
     /* key panel */
@@ -1617,7 +1624,7 @@ static void paint_main(HDC dc, const RECT *rc)
             wchar_t info[MAX_PATH + 80];
             if (g_selk == 2) lstrcpyW(info, L"Not saved yet.");
             else wsprintfW(info, L"Saved as %s\\%s.conf", g_dir, g_cur);
-            lstrcatW(info, L"\nOther settings in the file, like DNS or MTU, are kept as they are.");
+            lstrcatW(info, L"\nOther settings in the file, like MTU, are kept as they are.");
             txt(dc, info, &r_advinfo, C.dim, f_ui, DT_LEFT | DT_TOP | DT_WORDBREAK | DT_PATH_ELLIPSIS);
             if (g_msg[0]) {
                 RECT m;
@@ -1713,6 +1720,7 @@ static void create_children(HWND w)
     mkbtn(B_NEWKEY, w);
     mkedit(F_PSK, w);
     mkbtn(B_GENPSK, w);
+    mkedit(F_DNS, w);
     mkbtn(B_DELETE, w);
     mkedit(F_PUB, w);
     mkbtn(B_COPY, w);
